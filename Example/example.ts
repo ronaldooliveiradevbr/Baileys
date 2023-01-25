@@ -3,7 +3,7 @@ import makeWASocket, { AnyMessageContent, delay, DisconnectReason, fetchLatestBa
 import MAIN_LOGGER from '../src/Utils/logger'
 
 const logger = MAIN_LOGGER.child({ })
-logger.level = 'trace'
+logger.level = 'debug'
 
 const useStore = !process.argv.includes('--no-store')
 const doReplies = !process.argv.includes('--no-reply')
@@ -166,4 +166,8 @@ const startSock = async() => {
 	return sock
 }
 
-startSock()
+(async function() {
+	await startSock()
+
+	logger.info(store?.labels.findAll(), 'Available labels')
+}())
