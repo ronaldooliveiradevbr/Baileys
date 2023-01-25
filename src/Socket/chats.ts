@@ -701,6 +701,52 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	/**
+	 * Adds label for the chats
+	 */
+	const addChatLabel = (jid: string, labelId: string) => {
+		return chatModify({
+			addChatLabel: {
+				labelId
+			}
+		}, jid)
+	}
+
+	/**
+	 * Removes label for the chat
+	 */
+	const removeChatLabel = (jid: string, labelId: string) => {
+		return chatModify({
+			removeChatLabel: {
+				labelId
+			}
+		}, jid)
+	}
+
+	/**
+	 * Adds label for the message
+	 */
+	const addMessageLabel = (jid: string, messageId: string, labelId: string) => {
+		return chatModify({
+			addMessageLabel: {
+				messageId,
+				labelId
+			}
+		}, jid)
+	}
+
+	/**
+	 * Removes label for the message
+	 */
+	const removeMessageLabel = (jid: string, messageId: string, labelId: string) => {
+		return chatModify({
+			removeMessageLabel: {
+				messageId,
+				labelId
+			}
+		}, jid)
+	}
+
+	/**
 	 * queries need to be fired on connection open
 	 * help ensure parity with WA Web
 	 * */
@@ -859,6 +905,10 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		updateBlockStatus,
 		getBusinessProfile,
 		resyncAppState,
-		chatModify
+		chatModify,
+		addChatLabel,
+		removeChatLabel,
+		addMessageLabel,
+		removeMessageLabel
 	}
 }
