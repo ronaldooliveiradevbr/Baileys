@@ -76,7 +76,7 @@ export type ChatModification =
     }
     | {
         star: {
-            messages: { id: string, fromMe?: boolean }[],
+            messages: { id: string, fromMe?: boolean }[]
             star: boolean
         }
     }
