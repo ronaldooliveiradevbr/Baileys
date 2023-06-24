@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> newupstream/master
 export class ObjectRepository<T extends object> {
 	readonly entityMap: Map<string, T>
 
