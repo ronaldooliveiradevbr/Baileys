@@ -16,7 +16,7 @@ type WASocket = ReturnType<typeof makeMDSocket>
 
 export const waChatKey = (pin: boolean) => ({
 	key: (c: Chat) => (pin ? (c.pinned ? '1' : '0') : '') + (c.archived ? '0' : '1') + (c.conversationTimestamp ? c.conversationTimestamp.toString(16).padStart(8, '0') : '') + c.id,
-	compare: (k1: string, k2: string) => k2.localeCompare (k1)
+	compare: (k1: string, k2: string) => k2.localeCompare(k1)
 })
 
 export const waMessageID = (m: WAMessage) => m.key.id || ''
@@ -75,20 +75,20 @@ const predefinedLabels = Object.freeze<Record<string, Label>>({
 export default (
 	{ logger: _logger, chatKey, labelAssociationKey }: BaileysInMemoryStoreConfig
 ) => {
+	// const logger = _logger || DEFAULT_CONNECTION_CONFIG.logger.child({ stream: 'in-mem-store' })
 	chatKey = chatKey || waChatKey(true)
 	labelAssociationKey = labelAssociationKey || waLabelAssociationKey
-
 	const logger = _logger || DEFAULT_CONNECTION_CONFIG.logger.child({ stream: 'in-mem-store' })
-	// const ChatDb = require('@adiwajshing/keyed-db').default as new (...args: any[]) => KeyedDB<Chat, string>
+	const KeyedDB = require('@adiwajshing/keyed-db').default
 
-	const chats = new KeyedDB<Chat, string>(chatKey, c => c.id)
-	const messages: { [_: string]: ReturnType<typeof makeMessagesDictionary> } = { }
-	const contacts: { [_: string]: Contact } = { }
-	const groupMetadata: { [_: string]: GroupMetadata } = { }
-	const presences: { [id: string]: { [participant: string]: PresenceData } } = { }
+	const chats = new KeyedDB(chatKey, c => c.id) as KeyedDB<Chat, string>
+	const messages: { [_: string]: ReturnType<typeof makeMessagesDictionary> } = {}
+	const contacts: { [_: string]: Contact } = {}
+	const groupMetadata: { [_: string]: GroupMetadata } = {}
+	const presences: { [id: string]: { [participant: string]: PresenceData } } = {}
 	const state: ConnectionState = { connection: 'close' }
 	const labels = new ObjectRepository<Label>(predefinedLabels)
-	const labelAssociations = new KeyedDB<LabelAssociation, string>(labelAssociationKey, labelAssociationKey.key)
+	const labelAssociations = new KeyedDB(labelAssociationKey, labelAssociationKey.key) as KeyedDB<LabelAssociation, string>
 
 	const assertMessageList = (jid: string) => {
 		if(!messages[jid]) {
@@ -146,11 +146,13 @@ export default (
 			logger.debug({ chatsAdded }, 'synced chats')
 
 			const oldContacts = contactsUpsert(newContacts)
-			for(const jid of oldContacts) {
-				delete contacts[jid]
+			if(isLatest) {
+				for(const jid of oldContacts) {
+					delete contacts[jid]
+				}
 			}
 
-			logger.debug({ deletedContacts: oldContacts.size, newContacts }, 'synced contacts')
+			logger.debug({ deletedContacts: isLatest ? oldContacts.size : 0, newContacts }, 'synced contacts')
 
 			for(const msg of newMessages) {
 				const jid = msg.key.remoteJid!
@@ -159,6 +161,10 @@ export default (
 			}
 
 			logger.debug({ messages: newMessages.length }, 'synced messages')
+		})
+
+		ev.on('contacts.upsert', contacts => {
+			contactsUpsert(contacts)
 		})
 
 		ev.on('contacts.update', updates => {
@@ -190,6 +196,33 @@ export default (
 				}
 			}
 		})
+
+		ev.on('labels.edit', (label: Label) => {
+			if(label.deleted) {
+				return labels.deleteById(label.id)
+			}
+
+			// WhatsApp can store only up to 20 labels
+			if(labels.count() < 20) {
+				return labels.upsertById(label.id, label)
+			}
+
+			logger.error('Labels count exceed')
+		})
+
+		ev.on('labels.association', ({ type, association }) => {
+			switch (type) {
+			case 'add':
+				labelAssociations.upsert(association)
+				break
+			case 'remove':
+				labelAssociations.delete(association)
+				break
+			default:
+				console.error(`unknown operation type [${type}]`)
+			}
+		})
+
 		ev.on('presence.update', ({ id, presences: update }) => {
 			presences[id] = presences[id] || {}
 			Object.assign(presences[id], update)
@@ -226,7 +259,16 @@ export default (
 		})
 		ev.on('messages.update', updates => {
 			for(const { update, key } of updates) {
-				const list = assertMessageList(key.remoteJid!)
+				const list = assertMessageList(jidNormalizedUser(key.remoteJid!))
+				if(update?.status) {
+					const listStatus = list.get(key.id!)?.status
+					if(listStatus && update?.status <= listStatus) {
+						logger.debug({ update, storedStatus: listStatus }, 'status stored newer then update')
+						delete update.status
+						logger.debug({ update }, 'new update object')
+					}
+				}
+
 				const result = list.updateAssign(key.id!, update)
 				if(!result) {
 					logger.debug({ update }, 'got update for non-existent message')
@@ -336,13 +378,7 @@ export default (
 		labelAssociations
 	})
 
-	const fromJSON = (json: {
-		chats: Chat[],
-		contacts: { [id: string]: Contact },
-		messages: { [id: string]: WAMessage[] },
-		labels: { [labelId: string]: Label },
-		labelAssociations: LabelAssociation[]
-	}) => {
+	const fromJSON = (json: {chats: Chat[], contacts: { [id: string]: Contact }, messages: { [id: string]: WAMessage[] }, labels: { [labelId: string]: Label }, labelAssociations: LabelAssociation[]}) => {
 		chats.upsert(...json.chats)
 		labelAssociations.upsert(...json.labelAssociations || [])
 		contactsUpsert(Object.values(json.contacts))
@@ -391,6 +427,38 @@ export default (
 			}
 
 			return messages
+		},
+		/**
+		 * Get all available labels for profile
+		 *
+		 * Keep in mind that the list is formed from predefined tags and tags
+		 * that were "caught" during their editing.
+		 */
+		getLabels: () => {
+			return labels
+		},
+
+		/**
+		 * Get labels for chat
+		 *
+		 * @returns Label IDs
+		 **/
+		getChatLabels: (chatId: string) => {
+			return labelAssociations.filter((la) => la.chatId === chatId).all()
+		},
+
+		/**
+		 * Get labels for message
+		 *
+		 * @returns Label IDs
+		 **/
+		getMessageLabels: (messageId: string) => {
+			const associations = labelAssociations
+				.filter((la: MessageLabelAssociation) => la.messageId === messageId)
+				.all()
+
+			return associations.map(({ labelId }) => labelId)
+
 		},
 		loadMessage: async(jid: string, id: string) => messages[jid]?.get(id),
 		mostRecentMessage: async(jid: string) => {

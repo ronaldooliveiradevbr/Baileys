@@ -38,15 +38,15 @@ const generateMac = (operation: proto.SyncdMutation.SyncdOperation, data: Buffer
 		}
 
 		const buff = Buffer.from([r])
-		return Buffer.concat([ buff, Buffer.from(keyId as any, 'base64') ])
+		return Buffer.concat([buff, Buffer.from(keyId as any, 'base64')])
 	}
 
 	const keyData = getKeyData()
 
 	const last = Buffer.alloc(8) // 8 bytes
-	last.set([ keyData.length ], last.length - 1)
+	last.set([keyData.length], last.length - 1)
 
-	const total = Buffer.concat([ keyData, data, last ])
+	const total = Buffer.concat([keyData, data, last])
 	const hmac = hmacSign(total, key, 'sha512')
 
 	return hmac.slice(0, 32)
@@ -171,7 +171,7 @@ export const encodeSyncdPatch = async(
 						blob: indexMac
 					},
 					value: {
-						blob: Buffer.concat([ encValue, valueMac ])
+						blob: Buffer.concat([encValue, valueMac])
 					},
 					keyId: { id: encKeyId }
 				}
@@ -281,7 +281,7 @@ export const extractSyncdPatches = async(
 	const syncNode = getBinaryNodeChild(result, 'sync')
 	const collectionNodes = getBinaryNodeChildren(syncNode, 'collection')
 
-	const final = { } as { [T in WAPatchName]: { patches: proto.ISyncdPatch[], hasMorePatches: boolean, snapshot?: proto.ISyncdSnapshot } }
+	const final = {} as { [T in WAPatchName]: { patches: proto.ISyncdPatch[], hasMorePatches: boolean, snapshot?: proto.ISyncdSnapshot } }
 	await Promise.all(
 		collectionNodes.map(
 			async collectionNode => {
@@ -302,7 +302,7 @@ export const extractSyncdPatches = async(
 					}
 
 					const blobRef = proto.ExternalBlobReference.decode(
-                        snapshotNode.content! as Buffer
+						snapshotNode.content! as Buffer
 					)
 					const data = await downloadExternalBlob(blobRef, options)
 					snapshot = proto.SyncdSnapshot.decode(data)
@@ -418,9 +418,9 @@ export const decodePatches = async(
 		indexValueMap: { ...initial.indexValueMap }
 	}
 
-	const mutationMap: ChatMutationMap = { }
+	const mutationMap: ChatMutationMap = {}
 
-	for(let i = 0;i < syncds.length;i++) {
+	for(let i = 0; i < syncds.length; i++) {
 		const syncd = syncds[i]
 		const { version, keyId, snapshotMac } = syncd
 		if(syncd.externalMutations) {
@@ -840,8 +840,8 @@ export const processSyncAction = (
 	}
 
 	function isValidPatchBasedOnMessageRange(chat: Chat, msgRange: proto.SyncActionValue.ISyncActionMessageRange | null | undefined) {
-		const lastMsgTimestamp = msgRange?.lastMessageTimestamp || msgRange?.lastSystemMessageTimestamp || 0
-		const chatLastMsgTimestamp = chat?.lastMessageRecvTimestamp || 0
-		return lastMsgTimestamp >= chatLastMsgTimestamp
+		  const lastMsgTimestamp = Number(msgRange?.lastMessageTimestamp || msgRange?.lastSystemMessageTimestamp || 0)
+		  const chatLastMsgTimestamp = Number(chat?.lastMessageRecvTimestamp || 0)
+		  return lastMsgTimestamp >= chatLastMsgTimestamp
 	}
 }

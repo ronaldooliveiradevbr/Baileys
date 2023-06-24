@@ -5,16 +5,17 @@ import type { ChatLabelAssociationActionBody } from './LabelAssociation'
 import type { MessageLabelAssociationActionBody } from './LabelAssociation'
 import type { MinimalMessage } from './Message'
 
+/** privacy settings in WhatsApp Web */
+export type WAPrivacyValue = 'all' | 'contacts' | 'contact_blacklist' | 'none'
+
+export type WAPrivacyOnlineValue = 'all' | 'match_last_seen'
+
+export type WAReadReceiptsValue = 'all' | 'none'
+
 /** set of statuses visible to other people; see updatePresence() in WhatsAppWeb.Send */
 export type WAPresence = 'unavailable' | 'available' | 'composing' | 'recording' | 'paused'
 
-export const ALL_WA_PATCH_NAMES = [
-	'critical_block',
-	'critical_unblock_low',
-	'regular_high',
-	'regular_low',
-	'regular'
-] as const
+export const ALL_WA_PATCH_NAMES = ['critical_block', 'critical_unblock_low', 'regular_high', 'regular_low', 'regular'] as const
 
 export type WAPatchName = typeof ALL_WA_PATCH_NAMES[number]
 

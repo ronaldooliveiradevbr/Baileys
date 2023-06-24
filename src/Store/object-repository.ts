@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> newupstream/master
 export class ObjectRepository<T extends object> {
 	readonly entityMap: Map<string, T>
 
@@ -29,4 +32,5 @@ export class ObjectRepository<T extends object> {
 	toJSON() {
 		return this.findAll()
 	}
+
 }
