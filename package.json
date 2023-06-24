@@ -1,5 +1,5 @@
 {
-  "name": "@whiskeysockets/baileys",
+  "name": "@codevance/dupond-engine",
   "version": "6.3.0",
   "description": "WhatsApp API",
   "keywords": [
@@ -12,9 +12,9 @@
     "automation",
     "multi-device"
   ],
-  "homepage": "https://github.com/WhiskeySockets/Baileys",
+  "homepage": "https://github.com/codevance/dupond-engine",
   "repository": {
-    "url": "git@github.com:WhiskeySockets/Baileys.git"
+    "url": "git@github.com:codevance/dupond-engine.git"
   },
   "license": "MIT",
   "author": "Adhiraj Singh",
