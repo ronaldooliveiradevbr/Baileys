@@ -428,38 +428,6 @@ export default (
 
 			return messages
 		},
-		/**
-		 * Get all available labels for profile
-		 *
-		 * Keep in mind that the list is formed from predefined tags and tags
-		 * that were "caught" during their editing.
-		 */
-		getLabels: () => {
-			return labels
-		},
-
-		/**
-		 * Get labels for chat
-		 *
-		 * @returns Label IDs
-		 **/
-		getChatLabels: (chatId: string) => {
-			return labelAssociations.filter((la) => la.chatId === chatId).all()
-		},
-
-		/**
-		 * Get labels for message
-		 *
-		 * @returns Label IDs
-		 **/
-		getMessageLabels: (messageId: string) => {
-			const associations = labelAssociations
-				.filter((la: MessageLabelAssociation) => la.messageId === messageId)
-				.all()
-
-			return associations.map(({ labelId }) => labelId)
-
-		},
 		loadMessage: async(jid: string, id: string) => messages[jid]?.get(id),
 		mostRecentMessage: async(jid: string) => {
 			const message: WAMessage | undefined = messages[jid]?.array.slice(-1)[0]
